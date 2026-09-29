@@ -280,7 +280,7 @@ async function revisar() {
     if (!texto) throw new Error(`Gemini no devolvió respuesta (${json.candidates?.[0]?.finishReason || json.promptFeedback?.blockReason || 'sin detalle'}).`);
     pintarReporte(JSON.parse(texto), modelo);
   } catch (err) {
-    $('salida').hidden = true;
+    mostrarVacio();
     avisar(`No se pudo revisar: ${err.message}`, true);
   } finally {
     btn.disabled = archivos.length === 0;
@@ -307,8 +307,10 @@ function el(tag, attrs = {}, ...hijos) {
   return n;
 }
 
+const VACIO = $('reporte').innerHTML;
+function mostrarVacio() { $('reporte').innerHTML = VACIO; }
+
 function mostrarCargando(modelo) {
-  $('salida').hidden = false;
   $('reporte').replaceChildren(
     el('div', { class: 'cargando' }, el('div', { class: 'spinner' }), `Revisando con ${modelo}…`)
   );
@@ -361,7 +363,7 @@ function pintarReporte(r, modelo) {
     archivos.length = 0;
     pintarLista();
     $('textoCliente').value = ''; $('notas').value = '';
-    $('salida').hidden = true;
+    mostrarVacio();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   cont.append(
