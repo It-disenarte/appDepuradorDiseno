@@ -1,0 +1,16 @@
+{
+  "name": "Depurador de Diseños",
+  "short_name": "Depurador",
+  "description": "Revisa tus diseños antes de mandarlos a producción.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1f1d2b",
+  "theme_color": "#1f1d2b",
+  "lang": "es-MX",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
