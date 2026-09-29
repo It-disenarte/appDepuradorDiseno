@@ -7,7 +7,7 @@ const TIPOS_OK = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
 
 // La app llama a su función de Vercel (/api/revisar), donde vive la API key.
 // La extensión no corre en ese dominio, así que necesita la URL completa del despliegue.
-const URL_PRODUCCION = 'https://depurador-disenarte.vercel.app';
+const URL_PRODUCCION = 'https://app-dep-dis.vercel.app';
 const API_URL = (location.protocol === 'chrome-extension:' ? URL_PRODUCCION : '') + '/api/revisar';
 
 const $ = (id) => document.getElementById(id);

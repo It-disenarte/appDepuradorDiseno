@@ -9,5 +9,5 @@
   "side_panel": { "default_path": "index.html" },
   "background": { "service_worker": "background.js" },
   "permissions": ["sidePanel", "clipboardRead", "clipboardWrite"],
-  "host_permissions": ["https://generativelanguage.googleapis.com/*", "https://depurador-disenarte.vercel.app/*"]
+  "host_permissions": ["https://generativelanguage.googleapis.com/*", "https://app-dep-dis.vercel.app/*"]
 }

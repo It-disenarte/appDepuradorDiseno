@@ -15,7 +15,7 @@ La primera vez, abre ⚙ **Ajustes** y escribe el **código del equipo**.
    - `GEMINI_API_KEY`: la key de [Google AI Studio](https://aistudio.google.com/apikey).
    - `CODIGO_EQUIPO`: una clave inventada que se comparte solo con las diseñadoras.
 3. Vuelve a desplegar para que tome las variables.
-4. Si la URL final no es `https://depurador-disenarte.vercel.app`, cámbiala en:
+4. Si la URL final no es `https://app-dep-dis.vercel.app`, cámbiala en:
    - `app/app.js`, en la constante `URL_PRODUCCION`.
    - `app/manifest.json`, en `host_permissions`.
 
