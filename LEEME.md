@@ -1,13 +1,20 @@
 # Depurador de Diseños
 
-Revisa un diseño con IA (Gemini) antes de mandarlo a producción: ortografía, letras faltantes, texto cortado, datos mal escritos y comparación contra el texto que aprobó el cliente.
+Revisa un diseño antes de mandarlo a producción: ortografía, letras faltantes, texto cortado, datos mal escritos, comparación contra el texto que aprobó el cliente y la parte técnica del PDF (tamaño, rebase, color, resolución, fuentes y línea de corte).
 
 ## Uso
 1. Toma una captura con `Win + Shift + S` y pégala con `Ctrl + V`, o arrastra un PNG, JPG o PDF.
-2. (Opcional) Pega el texto que aprobó el cliente.
-3. Clic en **Revisar diseño** para ver el reporte en semáforo.
+2. (Opcional) Pega el texto que aprobó el cliente y, para el PDF, la medida final en **Datos técnicos**.
+3. Elige el tipo de revisión:
 
-La primera vez, abre ⚙ **Ajustes** y escribe el **código del equipo**.
+| Revisión | Qué revisa | Costo | Se envía algo |
+|---|---|---|---|
+| 🔍 **Con IA** (Gemini) | Ortografía, texto cortado o encimado, legibilidad, formatos y datos del cliente | Centavos por revisión | Sí, a Gemini (vía Vercel) |
+| ⚡ **Rápida** | Ortografía con diccionario es-MX, palabras repetidas, teléfonos, correos, webs y datos del cliente | Gratis | No, todo en el navegador |
+| 📐 **Técnica** (solo PDF) | Tamaño, rebase, fuentes incrustadas, RGB/CMYK, resolución real de imágenes, línea de corte y margen de seguridad | Gratis | No, todo en el navegador |
+
+La primera vez que se usa la revisión rápida, el navegador descarga ~7 MB (lector de texto + idioma) y los guarda; después tarda 1–2 s.
+Nombres de clientes o marcas que no estén en el diccionario se agregan en ⚙ Ajustes → **Palabras permitidas**.
 
 ## Despliegue en Vercel
 1. Sube esta carpeta a un repositorio de GitHub e impórtalo en Vercel. `vercel.json` ya indica que los archivos de la app están en `app/` y que la función está en `api/`.
@@ -35,10 +42,15 @@ Abre la URL de Vercel en Chrome o Edge, ve al menú ⋮ y elige **Instalar Depur
 
 ## Estructura
 - `app/`: la app. Funciona como PWA y como extensión.
+  - `rapida.js`: revisión rápida (OCR con Tesseract.js o texto del PDF + diccionario con nspell).
+  - `tecnica.js`: revisión técnica del PDF (pdf.js + pdf-lib).
+  - `librerias.js`: carga esas librerías solo cuando se usan.
+  - `vendor/`: librerías locales (~18 MB; la extensión no permite cargar código de internet).
 - `api/revisar.mjs`: función de Vercel que agrega la API key y reenvía la petición a Gemini.
 - `servidor.js` / `iniciar.bat`: servidor local para pruebas.
 
 ## Límites actuales
 - Por el servidor, el máximo es **3 MB por revisión** (Vercel acepta hasta 4.5 MB por petición). Las capturas de más de 1 MB se comprimen solas. Para PDF pesados, en Ajustes → Avanzado se puede usar una API key propia, que llama a Gemini directo y admite hasta 18 MB.
-- Revisa **texto**. Todavía no revisa lo técnico de preprensa: tamaño, rebase, CMYK, resolución ni línea de corte.
+- La revisión técnica solo ve texto vivo para el margen de seguridad; el texto en curvas no se puede medir.
+- La revisión rápida depende de que el OCR lea bien: tipografías decorativas o texto sobre fotos pueden dar falsas alarmas.
 - La IA puede equivocarse: el reporte es una ayuda, no reemplaza la revisión humana.

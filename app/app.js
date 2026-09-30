@@ -26,12 +26,14 @@ function abrirAjustes() {
   $('cfgCodigo').value = leerCfg('codigo_equipo');
   $('cfgKey').value = leerCfg('gemini_key');
   $('cfgModelo').value = leerCfg('gemini_modelo', MODELO_DEFAULT);
+  $('cfgPermitidas').value = leerCfg('palabras_permitidas');
   $('dlgAjustes').showModal();
 }
 $('btnGuardarCfg').addEventListener('click', () => {
   guardarCfg('codigo_equipo', $('cfgCodigo').value.trim());
   guardarCfg('gemini_key', $('cfgKey').value.trim());
   guardarCfg('gemini_modelo', $('cfgModelo').value.trim() || MODELO_DEFAULT);
+  guardarCfg('palabras_permitidas', $('cfgPermitidas').value.trim());
 });
 
 // ---------- Entrada de archivos ----------
@@ -72,7 +74,14 @@ function pintarLista() {
     li.append(num, x);
     ul.append(li);
   });
-  $('btnRevisar').disabled = archivos.length === 0;
+  habilitarBotones();
+}
+
+function habilitarBotones(ocupado = false) {
+  $('btnRevisar').disabled = ocupado || archivos.length === 0;
+  $('btnRapida').disabled = ocupado || archivos.length === 0;
+  $('btnTecnica').disabled = ocupado || !archivos.some((a) => a.file.type === 'application/pdf');
+  $('btnTecnica').title = $('btnTecnica').disabled && !ocupado ? 'Agrega el PDF final para la revisión técnica' : '';
 }
 
 // Ctrl+V en cualquier parte de la página
@@ -225,8 +234,7 @@ async function revisar() {
   if (!keyPropia && !codigo) { abrirAjustes(); avisar('Primero guarda el código del equipo en Ajustes.', true); return; }
   const modelo = leerCfg('gemini_modelo', MODELO_DEFAULT);
 
-  const btn = $('btnRevisar');
-  btn.disabled = true;
+  habilitarBotones(true);
   avisar('Preparando archivos…');
 
   try {
@@ -259,7 +267,7 @@ async function revisar() {
     };
 
     avisar('');
-    mostrarCargando(modelo);
+    mostrarCargando(`Revisando con ${modelo}…`);
 
     // Con API key propia se llama directo a Gemini (hasta 18 MB); si no, por el servidor del equipo.
     const resp = keyPropia
@@ -278,15 +286,78 @@ async function revisar() {
     if (!resp.ok) throw new Error(json.error?.message || `Error ${resp.status}`);
     const texto = (json.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
     if (!texto) throw new Error(`Gemini no devolvió respuesta (${json.candidates?.[0]?.finishReason || json.promptFeedback?.blockReason || 'sin detalle'}).`);
-    pintarReporte(JSON.parse(texto), modelo);
+    pintarReporte(JSON.parse(texto), {
+      lector: 'la IA',
+      pie: `Revisado con ${modelo}. La IA puede equivocarse: confirma los hallazgos antes de corregir.`,
+    });
   } catch (err) {
     mostrarVacio();
     avisar(`No se pudo revisar: ${err.message}`, true);
   } finally {
-    btn.disabled = archivos.length === 0;
+    habilitarBotones();
   }
 }
 $('btnRevisar').addEventListener('click', revisar);
+
+// ---------- Revisiones sin IA (todo en el navegador) ----------
+async function revisarRapida() {
+  habilitarBotones(true);
+  avisar('');
+  mostrarCargando('Preparando la revisión rápida…');
+  try {
+    const r = await revisionRapida(archivos, {
+      textoCliente: $('textoCliente').value.trim(),
+      permitidas: leerCfg('palabras_permitidas').split(/[\n,]/),
+    }, actualizarCargando);
+    pintarReporte(r, {
+      lector: 'el lector de texto',
+      pie: 'Revisión rápida sin IA (lectura de texto + diccionario). No detecta texto cortado ni problemas visuales, '
+        + 'y puede marcar letras mal leídas. Para una revisión completa usa "Revisar con IA".',
+    });
+  } catch (err) {
+    mostrarVacio();
+    avisar(`No se pudo hacer la revisión rápida: ${err.message}`, true);
+  } finally {
+    habilitarBotones();
+  }
+}
+$('btnRapida').addEventListener('click', revisarRapida);
+
+async function revisarTecnica() {
+  const pdfs = archivos.map((a, i) => ({ ...a, n: i + 1 })).filter((a) => a.file.type === 'application/pdf');
+  habilitarBotones(true);
+  avisar('');
+  mostrarCargando('Analizando el PDF…');
+  try {
+    const opciones = {
+      ancho: $('medAncho').value, alto: $('medAlto').value, unidad: $('medUnidad').value,
+      escala: $('medEscala').value, corte: $('medCorte').checked,
+    };
+    const verificaciones = [];
+    for (const a of pdfs) {
+      actualizarCargando(`Analizando ${a.nombre}…`);
+      const r = await revisionTecnica(a.file, opciones);
+      verificaciones.push(...r.verificaciones.map((v) => (pdfs.length > 1 ? { ...v, nombre: `Archivo ${a.n} · ${v.nombre}` } : v)));
+    }
+    const errores = verificaciones.filter((v) => v.estado === 'error').length;
+    const dudas = verificaciones.filter((v) => v.estado === 'revisar').length;
+    pintarReporte({
+      estado_general: errores ? 'con_errores' : dudas ? 'revisar' : 'aprobado',
+      resumen: errores || dudas
+        ? `${errores} problema(s) y ${dudas} punto(s) por revisar en la parte técnica.`
+        : 'La parte técnica del PDF está lista para producción.',
+      verificaciones, hallazgos: [], verificacion_cliente: [], texto_detectado: '',
+    }, {
+      pie: 'Revisión técnica automática del PDF, sin IA. No revisa ortografía: combínala con la revisión con IA o la rápida.',
+    });
+  } catch (err) {
+    mostrarVacio();
+    avisar(`No se pudo analizar el PDF: ${err.message}. Si está protegido o dañado, vuelve a exportarlo.`, true);
+  } finally {
+    habilitarBotones();
+  }
+}
+$('btnTecnica').addEventListener('click', revisarTecnica);
 
 // ---------- Reporte ----------
 const ETIQUETAS_ESTADO = {
@@ -310,14 +381,21 @@ function el(tag, attrs = {}, ...hijos) {
 const VACIO = $('reporte').innerHTML;
 function mostrarVacio() { $('reporte').innerHTML = VACIO; }
 
-function mostrarCargando(modelo) {
+function mostrarCargando(texto) {
   $('reporte').replaceChildren(
-    el('div', { class: 'cargando' }, el('div', { class: 'spinner' }), `Revisando con ${modelo}…`)
+    el('div', { class: 'cargando' }, el('div', { class: 'spinner' }), el('span', { id: 'textoCargando' }, texto))
   );
   if (window.innerWidth < 900) $('salida').scrollIntoView({ behavior: 'smooth' });
 }
 
-function pintarReporte(r, modelo) {
+function actualizarCargando(texto) {
+  const t = $('textoCargando');
+  if (t) t.textContent = texto;
+}
+
+const ICONOS_VERIF = { ok: '✔', revisar: '!', error: '✘', info: 'i' };
+
+function pintarReporte(r, { lector = '', pie = '' } = {}) {
   const errores = r.hallazgos.filter((h) => h.severidad === 'error');
   const dudas = r.hallazgos.filter((h) => h.severidad !== 'error');
   const [luz, titulo, textoDefault] = ETIQUETAS_ESTADO[r.estado_general] || ETIQUETAS_ESTADO.revisar;
@@ -328,6 +406,13 @@ function pintarReporte(r, modelo) {
       el('span', { class: 'luz' }, luz),
       el('div', {}, el('h3', {}, titulo), el('p', {}, r.resumen || textoDefault))),
   );
+
+  if (r.verificaciones?.length) {
+    cont.append(el('h2', {}, 'Revisión técnica'));
+    cont.append(el('ul', { class: 'checklist' }, r.verificaciones.map((v) => el('li', { class: `v-${v.estado}` },
+      el('span', { class: 'v-icono', 'aria-hidden': 'true' }, ICONOS_VERIF[v.estado] || '·'),
+      el('div', {}, el('strong', {}, v.nombre), el('p', {}, v.detalle))))));
+  }
 
   if (r.hallazgos.length) {
     cont.append(el('h2', {}, `Hallazgos (${errores.length} errores, ${dudas.length} por revisar)`));
@@ -347,7 +432,7 @@ function pintarReporte(r, modelo) {
 
   if (r.texto_detectado) {
     cont.append(el('details', { class: 'transcripcion' },
-      el('summary', {}, 'Ver todo el texto que leyó la IA'),
+      el('summary', {}, `Ver todo el texto que leyó ${lector || 'la revisión'}`),
       el('pre', {}, r.texto_detectado)));
   }
 
@@ -368,7 +453,7 @@ function pintarReporte(r, modelo) {
   });
   cont.append(
     el('div', { class: 'reporte-acciones' }, copiar, nueva),
-    el('p', { class: 'estado-envio' }, `Revisado con ${modelo}. La IA puede equivocarse: confirma los hallazgos antes de corregir.`),
+    el('p', { class: 'estado-envio' }, pie),
   );
 }
 
@@ -380,7 +465,7 @@ function pintarHallazgo(h) {
     el('div', { class: 'meta' },
       el('span', { class: `chip ${h.severidad}` }, h.severidad === 'error' ? 'Error' : 'Revisar'),
       el('span', {}, ETIQUETAS_TIPO[h.tipo] || h.tipo),
-      el('span', {}, `Archivo ${h.archivo} · ${h.ubicacion}`)),
+      el('span', {}, `Archivo ${h.archivo}${h.ubicacion ? ` · ${h.ubicacion}` : ''}`)),
     cambio,
     h.explicacion ? el('p', { class: 'expl' }, h.explicacion) : null);
 }
@@ -388,8 +473,10 @@ function pintarHallazgo(h) {
 function reporteTexto(r) {
   const [luz, titulo] = ETIQUETAS_ESTADO[r.estado_general] || ETIQUETAS_ESTADO.revisar;
   const lineas = [`${luz} ${titulo}`, r.resumen, ''];
+  (r.verificaciones || []).forEach((v) => lineas.push(`[${v.estado.toUpperCase()}] ${v.nombre}: ${v.detalle}`));
+  if (r.verificaciones?.length) lineas.push('');
   r.hallazgos.forEach((h, i) => {
-    lineas.push(`${i + 1}. [${h.severidad === 'error' ? 'ERROR' : 'REVISAR'}] ${ETIQUETAS_TIPO[h.tipo] || h.tipo} · Archivo ${h.archivo} · ${h.ubicacion}`);
+    lineas.push(`${i + 1}. [${h.severidad === 'error' ? 'ERROR' : 'REVISAR'}] ${ETIQUETAS_TIPO[h.tipo] || h.tipo} · Archivo ${h.archivo}${h.ubicacion ? ` · ${h.ubicacion}` : ''}`);
     lineas.push(`   Dice: ${h.texto_actual}${h.correccion ? `  →  Debe decir: ${h.correccion}` : ''}`);
     if (h.explicacion) lineas.push(`   ${h.explicacion}`);
   });

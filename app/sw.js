@@ -1,6 +1,6 @@
 // Service worker de la PWA: permite instalarla y abrirla aunque falle la red local.
-const CACHE = 'depurador-v2';
-const ARCHIVOS = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'img/logo.png', 'img/simbolo-blanco.png', 'fonts/montserrat.woff2', 'fonts/poppins-300.woff2', 'fonts/poppins-500.woff2', 'fonts/poppins-600.woff2'];
+const CACHE = 'depurador-v4';
+const ARCHIVOS = ['./', 'index.html', 'styles.css', 'app.js', 'librerias.js', 'rapida.js', 'tecnica.js', 'manifest.webmanifest', 'icons/icon-192.png', 'img/logo.png', 'img/icono.svg', 'img/icono-blanco.svg', 'fonts/montserrat.woff2', 'fonts/poppins-300.woff2', 'fonts/poppins-500.woff2', 'fonts/poppins-600.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));

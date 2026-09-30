@@ -7,20 +7,21 @@
   <meta name="description" content="Revisa tus diseños antes de mandarlos a producción.">
   <meta name="theme-color" content="#7c07a6">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png">
+  <link rel="icon" href="img/icono.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <img src="img/simbolo-blanco.png" alt="Diseñarte México" width="34" height="34">
+      <img src="img/icono-blanco.svg" alt="" width="36" height="36">
       <div>
         <h1>Depurador de Diseños</h1>
         <p class="sub">Diseñarte México<span class="sub-extra"> · revisión antes de producción</span></p>
       </div>
     </div>
     <div class="top-actions">
-      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
       <button id="btnAjustes" class="icon-btn" title="Ajustes" aria-label="Ajustes">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
@@ -50,14 +51,39 @@
       <h2>3. Notas para la revisión <span class="opt">(opcional)</span></h2>
       <input id="notas" type="text" placeholder="Ej. “Lona 3×1 m”, “el logo se escribe DisEñarte así a propósito”">
 
-      <button id="btnRevisar" class="btn primary big" type="button" disabled>🔍 Revisar diseño</button>
+      <details class="tecnicos">
+        <summary><h2>4. Datos técnicos <span class="opt">(para revisar el PDF)</span></h2></summary>
+        <div class="fila-medida">
+          <label>Ancho <input id="medAncho" type="number" min="0" step="any" inputmode="decimal" placeholder="300"></label>
+          <span class="por">×</span>
+          <label>Alto <input id="medAlto" type="number" min="0" step="any" inputmode="decimal" placeholder="100"></label>
+          <label>Unidad
+            <select id="medUnidad"><option value="cm">cm</option><option value="mm">mm</option><option value="m">m</option></select>
+          </label>
+        </div>
+        <label class="fila">Escala del archivo
+          <select id="medEscala">
+            <option value="1">1:1 (tamaño real)</option>
+            <option value="10">1:10 (a 10%)</option>
+            <option value="4">1:4 (a 25%)</option>
+            <option value="2">1:2 (a 50%)</option>
+          </select>
+        </label>
+        <label class="check"><input id="medCorte" type="checkbox"> El trabajo lleva corte o suaje</label>
+      </details>
+
+      <button id="btnRevisar" class="btn primary big" type="button" disabled>🔍 Revisar con IA</button>
+      <div class="otras">
+        <button id="btnRapida" class="btn secondary" type="button" disabled>⚡ Revisión rápida<small>sin IA · ortografía</small></button>
+        <button id="btnTecnica" class="btn secondary" type="button" disabled>📐 Revisión técnica<small>sin IA · solo PDF</small></button>
+      </div>
       <p id="estadoEnvio" class="estado-envio" role="status"></p>
     </section>
 
     <section class="panel salida" id="salida">
       <div id="reporte">
         <div class="vacio-estado">
-          <img src="img/logo.png" alt="" width="120">
+          <img src="img/icono.svg" alt="" width="96" height="96">
           <h3>Revisa antes de mandar a producción</h3>
           <ol>
             <li><strong>Captura</strong> tu diseño con <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>.</li>
@@ -65,7 +91,11 @@
             <li><strong>Agrega</strong> el texto que aprobó el cliente para compararlo.</li>
             <li><strong>Revisa</strong> y corrige lo que marque en rojo antes de imprimir o cortar.</li>
           </ol>
-          <p class="nota">Detecta faltas de ortografía, letras faltantes, texto cortado y datos mal escritos.</p>
+          <div class="modos">
+            <div><strong>🔍 Con IA</strong><span>Ortografía, texto cortado, legibilidad y datos del cliente. La más completa.</span></div>
+            <div><strong>⚡ Rápida</strong><span>Ortografía con diccionario. Gratis y sin enviar nada; puede confundir letras.</span></div>
+            <div><strong>📐 Técnica</strong><span>Del PDF final: tamaño, rebase, CMYK, resolución, fuentes y línea de corte.</span></div>
+          </div>
         </div>
       </div>
     </section>
@@ -98,6 +128,10 @@
           <option value="gemini-3.5-flash-lite">Más económico</option>
         </datalist>
       </label>
+      <label>Palabras permitidas <span class="opt">(revisión rápida)</span>
+        <textarea id="cfgPermitidas" rows="3" placeholder="Una por renglón: nombres de clientes, marcas, productos…"></textarea>
+      </label>
+      <p class="help">La revisión rápida no las marcará como faltas de ortografía.</p>
       <div class="dlg-actions">
         <button value="cancel" class="btn secondary" formnovalidate>Cancelar</button>
         <button id="btnGuardarCfg" value="ok" class="btn primary">Guardar</button>
@@ -105,6 +139,9 @@
     </form>
   </dialog>
 
+  <script src="librerias.js"></script>
+  <script src="rapida.js"></script>
+  <script src="tecnica.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
