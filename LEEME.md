@@ -3,6 +3,8 @@
 Revisa un diseño antes de mandarlo a producción: ortografía, letras faltantes, texto cortado, datos mal escritos, comparación contra el texto que aprobó el cliente y la parte técnica del PDF (tamaño, rebase, color, resolución, fuentes y línea de corte).
 
 ## Uso
+Al abrirla por primera vez pide el **código del equipo** (se valida contra el servidor y queda guardado en ese equipo). **Salir**, en el menú, lo borra.
+
 1. Toma una captura con `Win + Shift + S` y pégala con `Ctrl + V`, o arrastra un PNG, JPG o PDF.
 2. (Opcional) Pega el texto que aprobó el cliente y, para el PDF, la medida final en **Datos técnicos**.
 3. Elige el tipo de revisión:
@@ -40,8 +42,14 @@ Abre la URL de Vercel en Chrome o Edge, ve al menú ⋮ y elige **Instalar Depur
 1. Copia `.env.example` como `.env.local` y llena las dos variables.
 2. Doble clic en `iniciar.bat` (requiere Node.js 24). Se abre `http://localhost:5173` con la misma función del servidor.
 
+## Diseño
+Sigue la guía de diseño unificado de las apps de Diseñarte (estándar: Cotizador): morado #7C07A6, Poppins incluida, fondo con textura al 7 %, menú lateral morado (cajón en celular), acceso de dos columnas, asistente de uso que señala cada sección, pantalla de carga e ícono propio (hoja morada con lupa).
+
 ## Estructura
 - `app/`: la app. Funciona como PWA y como extensión.
+  - `shell.js`: acceso, menú, navegación entre pantallas, pantalla de carga e instalación.
+  - `asistente.js`: asistente de uso y los textos de cada pantalla.
+  - `app.js`: archivos, revisiones, reporte y ajustes.
   - `rapida.js`: revisión rápida (OCR con Tesseract.js o texto del PDF + diccionario con nspell).
   - `tecnica.js`: revisión técnica del PDF (pdf.js + pdf-lib).
   - `librerias.js`: carga esas librerías solo cuando se usan.

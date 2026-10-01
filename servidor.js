@@ -9,7 +9,7 @@ const RAIZ = path.join(__dirname, 'app');
 const TIPOS = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png',
-  '.svg': 'image/svg+xml', '.mjs': 'text/javascript; charset=utf-8', '.woff2': 'font/woff2', '.aff': 'text/plain; charset=utf-8', '.dic': 'text/plain; charset=utf-8',
+  '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.mjs': 'text/javascript; charset=utf-8', '.woff2': 'font/woff2', '.aff': 'text/plain; charset=utf-8', '.dic': 'text/plain; charset=utf-8',
 };
 if (fs.existsSync(path.join(__dirname, '.env.local'))) process.loadEnvFile(path.join(__dirname, '.env.local'));
 const api = import('./api/revisar.mjs');

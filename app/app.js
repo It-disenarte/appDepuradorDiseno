@@ -1,39 +1,32 @@
 'use strict';
+// Lógica del depurador: archivos, revisiones (con IA, rápida y técnica), reporte y ajustes.
+// La estructura de la app (acceso, menú, carga, asistente) está en shell.js y asistente.js.
 
 const MODELO_DEFAULT = 'gemini-3.8-flash';
 const MAX_BYTES_DIRECTO = 18 * 1024 * 1024; // límite de datos en línea por petición a Gemini
 const MAX_BYTES_SERVIDOR = 3.2 * 1024 * 1024; // Vercel acepta 4.5 MB por petición; el base64 pesa ~33% más
 const TIPOS_OK = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
 
-// La app llama a su función de Vercel (/api/revisar), donde vive la API key.
-// La extensión no corre en ese dominio, así que necesita la URL completa del despliegue.
-const URL_PRODUCCION = 'https://app-dep-dis.vercel.app';
-const API_URL = (location.protocol === 'chrome-extension:' ? URL_PRODUCCION : '') + '/api/revisar';
-
-const $ = (id) => document.getElementById(id);
 const archivos = []; // { file, url, nombre }
+const modeloActual = () => leerCfg('gemini_modelo') || MODELO_DEFAULT;
 
 // ---------- Ajustes ----------
-function leerCfg(clave, porDefecto = '') {
-  try { return localStorage.getItem(clave) || porDefecto; } catch { return porDefecto; }
-}
-function guardarCfg(clave, valor) {
-  try { localStorage.setItem(clave, valor); } catch { /* sin almacenamiento */ }
-}
-
-$('btnAjustes').addEventListener('click', abrirAjustes);
-function abrirAjustes() {
-  $('cfgCodigo').value = leerCfg('codigo_equipo');
+document.addEventListener('pantalla', (e) => {
+  if (e.detail !== 'ajustes') return;
+  $('cfgModelo').value = modeloActual();
   $('cfgKey').value = leerCfg('gemini_key');
-  $('cfgModelo').value = leerCfg('gemini_modelo', MODELO_DEFAULT);
   $('cfgPermitidas').value = leerCfg('palabras_permitidas');
-  $('dlgAjustes').showModal();
-}
-$('btnGuardarCfg').addEventListener('click', () => {
-  guardarCfg('codigo_equipo', $('cfgCodigo').value.trim());
+  $('ajustesAviso').hidden = true;
+});
+let temporizadorAviso;
+$('formAjustes').addEventListener('submit', (e) => {
+  e.preventDefault();
+  guardarCfg('gemini_modelo', $('cfgModelo').value || MODELO_DEFAULT);
   guardarCfg('gemini_key', $('cfgKey').value.trim());
-  guardarCfg('gemini_modelo', $('cfgModelo').value.trim() || MODELO_DEFAULT);
   guardarCfg('palabras_permitidas', $('cfgPermitidas').value.trim());
+  $('ajustesAviso').hidden = false;
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => { $('ajustesAviso').hidden = true; }, 3000);
 });
 
 // ---------- Entrada de archivos ----------
@@ -58,20 +51,15 @@ function pintarLista() {
       img.src = a.url; img.alt = a.nombre;
       li.append(img);
     } else {
-      const d = document.createElement('div');
-      d.className = 'pdf'; d.textContent = `📄 ${a.nombre}`;
-      li.append(d);
+      li.append(el('div', { class: 'pdf' }, icono('file'), a.nombre));
     }
-    const num = document.createElement('span');
-    num.className = 'num'; num.textContent = i + 1;
-    const x = document.createElement('button');
-    x.className = 'quitar'; x.type = 'button'; x.textContent = '×'; x.title = 'Quitar';
-    x.addEventListener('click', () => {
+    const quitar = el('button', { class: 'quitar', type: 'button', title: 'Quitar', 'aria-label': `Quitar ${a.nombre}` }, icono('x'));
+    quitar.addEventListener('click', () => {
       if (a.url) URL.revokeObjectURL(a.url);
       archivos.splice(i, 1);
       pintarLista();
     });
-    li.append(num, x);
+    li.append(el('span', { class: 'num' }, String(i + 1)), quitar);
     ul.append(li);
   });
   habilitarBotones();
@@ -84,8 +72,9 @@ function habilitarBotones(ocupado = false) {
   $('btnTecnica').title = $('btnTecnica').disabled && !ocupado ? 'Agrega el PDF final para la revisión técnica' : '';
 }
 
-// Ctrl+V en cualquier parte de la página
+// Ctrl+V en cualquier parte de la pantalla de revisión
 document.addEventListener('paste', (e) => {
+  if ($('app').hidden || Shell.actual() !== 'revisar') return;
   const items = [...(e.clipboardData?.items || [])];
   const imgs = items.filter((it) => it.kind === 'file').map((it) => it.getAsFile()).filter(Boolean);
   if (imgs.length === 0) return; // texto normal: dejar que se pegue en el campo
@@ -93,7 +82,7 @@ document.addEventListener('paste', (e) => {
   imgs.forEach((f) => agregarArchivo(f, f.name && f.name !== 'image.png' ? f.name : `captura-${archivos.length + 1}.png`));
 });
 
-// Botón "Pegar del portapapeles"
+// Botón "Pegar"
 $('btnPegar').addEventListener('click', async () => {
   if (!navigator.clipboard?.read) {
     avisar('Tu navegador no permite leer el portapapeles con botón. Usa Ctrl + V.', true);
@@ -122,12 +111,19 @@ $('inputArchivo').addEventListener('change', (e) => {
 });
 
 const dz = $('dropzone');
-dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('encima'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('encima'));
 dz.addEventListener('drop', (e) => {
-  e.preventDefault(); dz.classList.remove('over');
+  e.preventDefault(); dz.classList.remove('encima');
   [...e.dataTransfer.files].forEach((f) => agregarArchivo(f));
 });
+
+// Medidas: solo números y un punto (la coma de miles se quita), como limpiarNumero del Cotizador.
+['medAncho', 'medAlto'].forEach((id) => $(id).addEventListener('input', (e) => {
+  const [entero, ...resto] = e.target.value.replace(/[^\d.]/g, '').split('.');
+  const limpio = resto.length ? `${entero}.${resto.join('')}` : entero;
+  if (limpio !== e.target.value) e.target.value = limpio;
+}));
 
 function avisar(msg, esError = false) {
   const p = $('estadoEnvio');
@@ -231,11 +227,12 @@ async function prepararImagen(file) {
 async function revisar() {
   const keyPropia = leerCfg('gemini_key');
   const codigo = leerCfg('codigo_equipo');
-  if (!keyPropia && !codigo) { abrirAjustes(); avisar('Primero guarda el código del equipo en Ajustes.', true); return; }
-  const modelo = leerCfg('gemini_modelo', MODELO_DEFAULT);
+  if (!keyPropia && !codigo) { Shell.mostrarAcceso(); return; }
+  const modelo = modeloActual();
 
   habilitarBotones(true);
-  avisar('Preparando archivos…');
+  avisar('');
+  Carga.mostrar('Preparando los archivos…');
 
   try {
     const listos = await Promise.all(archivos.map((a) => prepararImagen(a.file)));
@@ -266,8 +263,7 @@ async function revisar() {
       generationConfig: { response_mime_type: 'application/json', response_schema: ESQUEMA },
     };
 
-    avisar('');
-    mostrarCargando(`Revisando con ${modelo}…`);
+    Carga.texto('Revisando con IA…');
 
     // Con API key propia se llama directo a Gemini (hasta 18 MB); si no, por el servidor del equipo.
     const resp = keyPropia
@@ -282,6 +278,7 @@ async function revisar() {
         body: JSON.stringify({ modelo, peticion }),
       });
     if (resp.status === 413) throw new Error('los archivos son demasiado pesados para el servidor. Usa capturas por partes.');
+    if (resp.status === 401 && !keyPropia) throw new Error('el código del equipo ya no es válido. Usa "Salir" en el menú y vuelve a entrar con el nuevo.');
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(json.error?.message || `Error ${resp.status}`);
     const texto = (json.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
@@ -291,9 +288,9 @@ async function revisar() {
       pie: `Revisado con ${modelo}. La IA puede equivocarse: confirma los hallazgos antes de corregir.`,
     });
   } catch (err) {
-    mostrarVacio();
     avisar(`No se pudo revisar: ${err.message}`, true);
   } finally {
+    Carga.ocultar();
     habilitarBotones();
   }
 }
@@ -303,21 +300,21 @@ $('btnRevisar').addEventListener('click', revisar);
 async function revisarRapida() {
   habilitarBotones(true);
   avisar('');
-  mostrarCargando('Preparando la revisión rápida…');
+  Carga.mostrar('Preparando la revisión rápida…');
   try {
     const r = await revisionRapida(archivos, {
       textoCliente: $('textoCliente').value.trim(),
       permitidas: leerCfg('palabras_permitidas').split(/[\n,]/),
-    }, actualizarCargando);
+    }, Carga.texto);
     pintarReporte(r, {
       lector: 'el lector de texto',
       pie: 'Revisión rápida sin IA (lectura de texto + diccionario). No detecta texto cortado ni problemas visuales, '
         + 'y puede marcar letras mal leídas. Para una revisión completa usa "Revisar con IA".',
     });
   } catch (err) {
-    mostrarVacio();
     avisar(`No se pudo hacer la revisión rápida: ${err.message}`, true);
   } finally {
+    Carga.ocultar();
     habilitarBotones();
   }
 }
@@ -327,7 +324,7 @@ async function revisarTecnica() {
   const pdfs = archivos.map((a, i) => ({ ...a, n: i + 1 })).filter((a) => a.file.type === 'application/pdf');
   habilitarBotones(true);
   avisar('');
-  mostrarCargando('Analizando el PDF…');
+  Carga.mostrar('Analizando el PDF…');
   try {
     const opciones = {
       ancho: $('medAncho').value, alto: $('medAlto').value, unidad: $('medUnidad').value,
@@ -335,7 +332,7 @@ async function revisarTecnica() {
     };
     const verificaciones = [];
     for (const a of pdfs) {
-      actualizarCargando(`Analizando ${a.nombre}…`);
+      Carga.texto(`Analizando ${a.nombre}…`);
       const r = await revisionTecnica(a.file, opciones);
       verificaciones.push(...r.verificaciones.map((v) => (pdfs.length > 1 ? { ...v, nombre: `Archivo ${a.n} · ${v.nombre}` } : v)));
     }
@@ -351,25 +348,26 @@ async function revisarTecnica() {
       pie: 'Revisión técnica automática del PDF, sin IA. No revisa ortografía: combínala con la revisión con IA o la rápida.',
     });
   } catch (err) {
-    mostrarVacio();
     avisar(`No se pudo analizar el PDF: ${err.message}. Si está protegido o dañado, vuelve a exportarlo.`, true);
   } finally {
+    Carga.ocultar();
     habilitarBotones();
   }
 }
 $('btnTecnica').addEventListener('click', revisarTecnica);
 
 // ---------- Reporte ----------
-const ETIQUETAS_ESTADO = {
-  aprobado: ['🟢', 'Listo para producción', 'No se encontraron errores.'],
-  revisar: ['🟡', 'Revisar antes de mandar', 'Hay puntos que conviene confirmar.'],
-  con_errores: ['🔴', 'No mandar todavía', 'Hay errores que corregir.'],
+const ESTADOS = {
+  aprobado: ['circle-check', 'Listo para producción', 'No se encontraron errores.'],
+  revisar: ['alert', 'Revisar antes de mandar', 'Hay puntos que conviene confirmar.'],
+  con_errores: ['circle-x', 'No mandar todavía', 'Hay errores que corregir.'],
 };
 const ETIQUETAS_TIPO = {
   ortografia: 'Ortografía', texto_cortado: 'Texto cortado', legibilidad: 'Legibilidad',
   repeticion: 'Repetición', formato_dato: 'Formato de dato', inconsistencia: 'Inconsistencia',
   dato_cliente: 'Dato del cliente', otro: 'Otro',
 };
+const ICONOS_VERIF = { ok: 'circle-check', revisar: 'alert', error: 'circle-x', info: 'info' };
 
 function el(tag, attrs = {}, ...hijos) {
   const n = document.createElement(tag);
@@ -381,52 +379,38 @@ function el(tag, attrs = {}, ...hijos) {
 const VACIO = $('reporte').innerHTML;
 function mostrarVacio() { $('reporte').innerHTML = VACIO; }
 
-function mostrarCargando(texto) {
-  $('reporte').replaceChildren(
-    el('div', { class: 'cargando' }, el('div', { class: 'spinner' }), el('span', { id: 'textoCargando' }, texto))
-  );
-  if (window.innerWidth < 900) $('salida').scrollIntoView({ behavior: 'smooth' });
-}
-
-function actualizarCargando(texto) {
-  const t = $('textoCargando');
-  if (t) t.textContent = texto;
-}
-
-const ICONOS_VERIF = { ok: '✔', revisar: '!', error: '✘', info: 'i' };
-
 function pintarReporte(r, { lector = '', pie = '' } = {}) {
   const errores = r.hallazgos.filter((h) => h.severidad === 'error');
   const dudas = r.hallazgos.filter((h) => h.severidad !== 'error');
-  const [luz, titulo, textoDefault] = ETIQUETAS_ESTADO[r.estado_general] || ETIQUETAS_ESTADO.revisar;
+  const [ic, titulo, textoDefault] = ESTADOS[r.estado_general] || ESTADOS.revisar;
 
   const cont = $('reporte');
   cont.replaceChildren(
     el('div', { class: `semaforo ${r.estado_general}` },
-      el('span', { class: 'luz' }, luz),
-      el('div', {}, el('h3', {}, titulo), el('p', {}, r.resumen || textoDefault))),
+      icono(ic),
+      el('div', {}, el('h2', {}, titulo), el('p', {}, r.resumen || textoDefault))),
   );
 
   if (r.verificaciones?.length) {
-    cont.append(el('h2', {}, 'Revisión técnica'));
+    cont.append(el('h3', { class: 'reporte-seccion' }, 'Revisión técnica'));
     cont.append(el('ul', { class: 'checklist' }, r.verificaciones.map((v) => el('li', { class: `v-${v.estado}` },
-      el('span', { class: 'v-icono', 'aria-hidden': 'true' }, ICONOS_VERIF[v.estado] || '·'),
+      icono(ICONOS_VERIF[v.estado] || 'info'),
       el('div', {}, el('strong', {}, v.nombre), el('p', {}, v.detalle))))));
   }
 
   if (r.hallazgos.length) {
-    cont.append(el('h2', {}, `Hallazgos (${errores.length} errores, ${dudas.length} por revisar)`));
+    cont.append(el('h3', { class: 'reporte-seccion' }, `Hallazgos (${errores.length} errores, ${dudas.length} por revisar)`));
     [...errores, ...dudas].forEach((h) => cont.append(pintarHallazgo(h)));
   }
 
   if (r.verificacion_cliente?.length) {
-    cont.append(el('h2', {}, 'Datos del cliente'));
-    const iconos = { correcto: '✔ Correcto', diferente: '✘ Diferente', faltante: '✘ Falta' };
-    cont.append(el('table', { class: 'verif' },
+    cont.append(el('h3', { class: 'reporte-seccion' }, 'Datos del cliente'));
+    const etiquetas = { correcto: 'Correcto', diferente: 'Diferente', faltante: 'Falta' };
+    cont.append(el('table', { class: 'tabla-cliente' },
       el('thead', {}, el('tr', {}, el('th', {}, 'Dato'), el('th', {}, 'Aprobado'), el('th', {}, 'En el diseño'), el('th', {}, 'Estado'))),
       el('tbody', {}, r.verificacion_cliente.map((v) => el('tr', {},
         el('td', {}, v.dato), el('td', {}, v.esperado), el('td', {}, v.encontrado || '—'),
-        el('td', { class: `est-${v.estado}` }, iconos[v.estado] || v.estado)))),
+        el('td', { class: `est-${v.estado}` }, etiquetas[v.estado] || v.estado)))),
     ));
   }
 
@@ -436,25 +420,28 @@ function pintarReporte(r, { lector = '', pie = '' } = {}) {
       el('pre', {}, r.texto_detectado)));
   }
 
-  const copiar = el('button', { class: 'btn secondary', type: 'button' }, '📋 Copiar reporte');
+  const copiar = el('button', { class: 'btn btn-contorno', type: 'button' }, icono('copy'), 'Copiar reporte');
   copiar.addEventListener('click', async () => {
-    await navigator.clipboard.writeText(reporteTexto(r));
-    copiar.textContent = '✔ Copiado';
-    setTimeout(() => (copiar.textContent = '📋 Copiar reporte'), 1500);
+    try {
+      await navigator.clipboard.writeText(reporteTexto(r));
+      copiar.replaceChildren(icono('check'), 'Copiado');
+    } catch {
+      copiar.replaceChildren(icono('x'), 'No se pudo copiar');
+    }
+    setTimeout(() => copiar.replaceChildren(icono('copy'), 'Copiar reporte'), 1600);
   });
-  const nueva = el('button', { class: 'btn secondary', type: 'button' }, '↺ Nueva revisión');
+  const nueva = el('button', { class: 'btn btn-fantasma', type: 'button' }, icono('rotate'), 'Nueva revisión');
   nueva.addEventListener('click', () => {
     archivos.forEach((a) => a.url && URL.revokeObjectURL(a.url));
     archivos.length = 0;
     pintarLista();
     $('textoCliente').value = ''; $('notas').value = '';
     mostrarVacio();
+    avisar('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
-  cont.append(
-    el('div', { class: 'reporte-acciones' }, copiar, nueva),
-    el('p', { class: 'estado-envio' }, pie),
-  );
+  cont.append(el('div', { class: 'reporte-acciones' }, copiar, nueva), el('p', { class: 'reporte-pie' }, pie));
+  if (window.innerWidth < 1180) $('salida').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function pintarHallazgo(h) {
@@ -463,7 +450,7 @@ function pintarHallazgo(h) {
   if (h.correccion) cambio.append(el('dt', {}, 'Debe decir'), el('dd', { class: 'bien' }, h.correccion));
   return el('div', { class: `hallazgo ${h.severidad}` },
     el('div', { class: 'meta' },
-      el('span', { class: `chip ${h.severidad}` }, h.severidad === 'error' ? 'Error' : 'Revisar'),
+      el('span', { class: `insignia ${h.severidad}` }, h.severidad === 'error' ? 'Error' : 'Revisar'),
       el('span', {}, ETIQUETAS_TIPO[h.tipo] || h.tipo),
       el('span', {}, `Archivo ${h.archivo}${h.ubicacion ? ` · ${h.ubicacion}` : ''}`)),
     cambio,
@@ -471,8 +458,9 @@ function pintarHallazgo(h) {
 }
 
 function reporteTexto(r) {
-  const [luz, titulo] = ETIQUETAS_ESTADO[r.estado_general] || ETIQUETAS_ESTADO.revisar;
-  const lineas = [`${luz} ${titulo}`, r.resumen, ''];
+  const [, titulo] = ESTADOS[r.estado_general] || ESTADOS.revisar;
+  const marca = { aprobado: '🟢', revisar: '🟡', con_errores: '🔴' }[r.estado_general] || '🟡';
+  const lineas = [`${marca} ${titulo}`, r.resumen, ''];
   (r.verificaciones || []).forEach((v) => lineas.push(`[${v.estado.toUpperCase()}] ${v.nombre}: ${v.detalle}`));
   if (r.verificaciones?.length) lineas.push('');
   r.hallazgos.forEach((h, i) => {
@@ -487,11 +475,5 @@ function reporteTexto(r) {
   return lineas.join('\n');
 }
 
-// ---------- Instalación como app (PWA) ----------
-// En la extensión (chrome-extension://) no se registra el service worker de la PWA.
-if ('serviceWorker' in navigator && location.protocol !== 'chrome-extension:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
-
 pintarLista();
-if (!leerCfg('codigo_equipo') && !leerCfg('gemini_key')) avisar('Antes de empezar, abre ⚙ Ajustes y escribe el código del equipo.');
+Shell.iniciar();

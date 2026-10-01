@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Depurador de Diseños",
+  "name": "Depurador · Diseñarte México",
   "short_name": "Depurador",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Revisa tus diseños antes de mandarlos a producción. Pega una captura y la IA detecta errores.",
   "icons": {
     "16": "icons/icon-16.png",

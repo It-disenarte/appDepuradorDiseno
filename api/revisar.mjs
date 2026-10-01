@@ -20,6 +20,8 @@ export async function POST(request) {
 
   let datos;
   try { datos = await request.json(); } catch { return error(400, 'Petición inválida.'); }
+  // La pantalla de acceso solo comprueba el código: no se llama a Gemini.
+  if (datos?.verificar) return Response.json({ ok: true }, { headers: CORS });
   if (!MODELOS.includes(datos?.modelo)) return error(400, `Modelo no permitido. Usa uno de: ${MODELOS.join(', ')}.`);
   if (!Array.isArray(datos.peticion?.contents)) return error(400, 'Petición inválida.');
 
