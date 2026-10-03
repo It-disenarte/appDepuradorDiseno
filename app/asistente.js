@@ -87,7 +87,7 @@ const PASOS = {
     },
     {
       t: 'cfg-avanzado', titulo: 'Avanzado',
-      texto: 'Solo si necesitas revisar con IA un PDF de más de 3 MB: con una API key propia de Gemini, la revisión se hace directo desde esta computadora y acepta hasta 18 MB.',
+      texto: 'Opcional: con una API key propia de Gemini, la revisión con IA se hace directo desde esta computadora y se cobra a tu cuenta en lugar de la del equipo.',
     },
     {
       t: 'cfg-permitidas', titulo: 'Palabras permitidas',

@@ -1,0 +1,11 @@
+{
+  "name": "depurador-disenarte",
+  "private": true,
+  "description": "Depurador de diseños de Diseñarte México: revisa diseños antes de mandarlos a producción.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}

@@ -4,7 +4,7 @@
 
 const MODELO_DEFAULT = 'gemini-3.8-flash';
 const MAX_BYTES_DIRECTO = 18 * 1024 * 1024; // límite de datos en línea por petición a Gemini
-const MAX_BYTES_SERVIDOR = 3.2 * 1024 * 1024; // Vercel acepta 4.5 MB por petición; el base64 pesa ~33% más
+const MAX_BYTES_SERVIDOR = 18 * 1024 * 1024; // el servidor del equipo acepta lo mismo que Gemini en línea
 const TIPOS_OK = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
 
 const archivos = []; // { file, url, nombre }
@@ -265,7 +265,7 @@ async function revisar() {
 
     Carga.texto('Revisando con IA…');
 
-    // Con API key propia se llama directo a Gemini (hasta 18 MB); si no, por el servidor del equipo.
+    // Con API key propia se llama directo a Gemini; si no, por el servidor del equipo.
     const resp = keyPropia
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`, {
         method: 'POST',

@@ -1,6 +1,6 @@
 // Service worker de la PWA: permite instalarla y abrirla aunque falle la red.
 // Al cambiar el diseño, sube la versión para que los equipos descarguen lo nuevo.
-const CACHE = 'depurador-v5';
+const CACHE = 'depurador-v6';
 const FUENTES = [300, 400, 500, 600, 700].flatMap((w) => [`fonts/poppins-${w}-latin.woff2`, `fonts/poppins-${w}-latin-ext.woff2`]);
 const ARCHIVOS = [
   './', 'index.html', 'styles.css', 'shell.js', 'asistente.js', 'app.js', 'librerias.js', 'rapida.js', 'tecnica.js',

@@ -2,9 +2,9 @@
 // Estructura común de las apps de Diseñarte: acceso, menú lateral (cajón en celular), navegación
 // entre pantallas, pantalla de carga e instalación como app. La lógica del depurador va en app.js.
 
-// La app llama a su función de Vercel (/api/revisar), donde vive la API key.
+// La app llama a /api/revisar de su servidor (VPS), donde vive la API key.
 // La extensión no corre en ese dominio, así que necesita la URL completa del despliegue.
-const URL_PRODUCCION = 'https://app-dep-dis.vercel.app';
+const URL_PRODUCCION = 'https://depurador.disenartemx.com';
 const ES_EXTENSION = location.protocol === 'chrome-extension:';
 const API_URL = (ES_EXTENSION ? URL_PRODUCCION : '') + '/api/revisar';
 

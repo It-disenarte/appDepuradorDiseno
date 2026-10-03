@@ -1,4 +1,4 @@
-// Función de Vercel: recibe la petición armada por la app y la reenvía a Gemini con la API key del servidor.
+// API del depurador (la sirve server.js): recibe la petición armada por la app y la reenvía a Gemini con la API key del servidor.
 // Variables de entorno: GEMINI_API_KEY (key de Google AI Studio) y CODIGO_EQUIPO (clave que escriben las diseñadoras).
 const MODELOS = ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3.5-flash-lite'];
 
@@ -15,8 +15,8 @@ export function OPTIONS() {
 
 export async function POST(request) {
   const { GEMINI_API_KEY, CODIGO_EQUIPO } = process.env;
-  if (!GEMINI_API_KEY || !CODIGO_EQUIPO) return error(500, 'Falta configurar GEMINI_API_KEY o CODIGO_EQUIPO en Vercel.');
-  if (request.headers.get('x-codigo-equipo') !== CODIGO_EQUIPO) return error(401, 'Código del equipo incorrecto. Revísalo en ⚙ Ajustes.');
+  if (!GEMINI_API_KEY || !CODIGO_EQUIPO) return error(500, 'Falta configurar GEMINI_API_KEY o CODIGO_EQUIPO en el servidor.');
+  if (request.headers.get('x-codigo-equipo') !== CODIGO_EQUIPO) return error(401, 'Código del equipo incorrecto.');
 
   let datos;
   try { datos = await request.json(); } catch { return error(400, 'Petición inválida.'); }

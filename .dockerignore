@@ -1,0 +1,9 @@
+.git
+.vscode
+.vercel
+node_modules
+.env
+.env.local
+deploy
+LEEME.md
+iniciar.bat

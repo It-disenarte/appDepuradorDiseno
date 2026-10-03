@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Depurador · Diseñarte México",
   "short_name": "Depurador",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Revisa tus diseños antes de mandarlos a producción. Pega una captura y la IA detecta errores.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -31,7 +31,7 @@
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
-    "https://app-dep-dis.vercel.app/*"
+    "https://depurador.disenartemx.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
