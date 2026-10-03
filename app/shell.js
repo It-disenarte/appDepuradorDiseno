@@ -4,7 +4,7 @@
 
 // La app llama a /api/revisar de su servidor (VPS), donde vive la API key.
 // La extensión no corre en ese dominio, así que necesita la URL completa del despliegue.
-const URL_PRODUCCION = 'https://depurador.disenartemx.com';
+const URL_PRODUCCION = 'https://hub-disenarte-depurador.ebhssx.easypanel.host';
 const ES_EXTENSION = location.protocol === 'chrome-extension:';
 const API_URL = (ES_EXTENSION ? URL_PRODUCCION : '') + '/api/revisar';
 

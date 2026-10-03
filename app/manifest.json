@@ -31,7 +31,7 @@
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
-    "https://depurador.disenartemx.com/*"
+    "https://hub-disenarte-depurador.ebhssx.easypanel.host/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"

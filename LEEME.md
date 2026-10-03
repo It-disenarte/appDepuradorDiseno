@@ -28,12 +28,11 @@ Igual que Levantamientos y el Cotizador: Easypanel construye el `Dockerfile` des
    GEMINI_API_KEY=<key de Google AI Studio>
    CODIGO_EQUIPO=<clave que se comparte solo con las diseñadoras>
    ```
-4. **Domains**: `depurador.disenartemx.com` → puerto **3000**, HTTPS activado.
-   En el DNS, un registro A de `depurador` a la IP de la VPS.
-5. **Deploy**. Comprueba `https://depurador.disenartemx.com/api/salud` → `{"ok":true,"gemini":true,"codigo":true}`.
+4. **Domains**: Easypanel asigna `hub-disenarte-depurador.ebhssx.easypanel.host` → puerto **3000** (HTTPS incluido). No hace falta DNS.
+5. **Deploy**. Comprueba `https://hub-disenarte-depurador.ebhssx.easypanel.host/api/salud` → `{"ok":true,"gemini":true,"codigo":true}`.
 6. Activa **Auto Deploy** para que cada push a `main` publique la versión nueva.
 
-Si usas otro dominio, cámbialo en `app/shell.js` (`URL_PRODUCCION`) y en `app/manifest.json` (`host_permissions`): la extensión lo necesita.
+Si el dominio que asigna Easypanel es otro (o luego usas uno propio), cámbialo en `app/shell.js` (`URL_PRODUCCION`) y en `app/manifest.json` (`host_permissions`): la extensión lo necesita.
 
 La API key vive solo en el servidor; nunca llega al navegador. Sin el código del equipo, nadie puede usar la API.
 
@@ -44,7 +43,7 @@ Sube el número de caché en `app/sw.js` (`depurador-v6`) para que las apps inst
 `.vercelignore` deja fuera `server.js` y el `Dockerfile`, así que la versión de Vercel sigue funcionando igual. Cuando la VPS esté lista, desconecta el proyecto en Vercel y borra `vercel.json` y `.vercelignore`.
 
 ## Instalar como app de escritorio (PWA)
-Abre `https://depurador.disenartemx.com` en Chrome o Edge y en el menú elige **Instalar como app** (o el ícono de instalar en la barra de direcciones). Queda con ícono propio en el escritorio y en el menú Inicio.
+Abre `https://hub-disenarte-depurador.ebhssx.easypanel.host` en Chrome o Edge y en el menú elige **Instalar como app** (o el ícono de instalar en la barra de direcciones). Queda con ícono propio en el escritorio y en el menú Inicio.
 
 ## Instalar como extensión de Chrome o Edge (panel lateral)
 1. Abre `chrome://extensions` (o `edge://extensions`) y activa **Modo de desarrollador**.
